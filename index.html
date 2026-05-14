@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Snack Snake</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: rgba(255, 255, 255, 0.08);
+        --panel2: rgba(255, 255, 255, 0.12);
+        --text: #e9ecff;
+        --muted: rgba(233, 236, 255, 0.75);
+        --accent: #7c5cff;
+        --danger: #ff4d6d;
+        --ok: #33d69f;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+        background: radial-gradient(1200px 900px at 30% 15%, rgba(124, 92, 255, 0.25), transparent 55%),
+          radial-gradient(900px 700px at 80% 70%, rgba(51, 214, 159, 0.18), transparent 55%),
+          linear-gradient(180deg, #070a14, var(--bg));
+        color: var(--text);
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+
+      .app {
+        width: min(980px, 100%);
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0.3px;
+      }
+
+      .brand .tag {
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(124, 92, 255, 0.16);
+        color: rgba(233, 236, 255, 0.9);
+        border: 1px solid rgba(124, 92, 255, 0.25);
+        white-space: nowrap;
+      }
+
+      .hud {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 14px;
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .pill b {
+        color: var(--text);
+        font-weight: 650;
+        letter-spacing: 0.2px;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        align-items: start;
+      }
+
+      .stage {
+        position: relative;
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        overflow: hidden;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: none;
+        place-items: center;
+        padding: 18px;
+        background: radial-gradient(600px 500px at 50% 30%, rgba(124, 92, 255, 0.18), transparent 60%),
+          rgba(7, 10, 20, 0.55);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      .overlay[aria-hidden="false"] { display: grid; }
+
+      .card {
+        width: min(520px, 100%);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        padding: 16px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      .card h2 {
+        margin: 0 0 6px 0;
+        font-size: 16px;
+        letter-spacing: 0.2px;
+      }
+
+      .card p {
+        margin: 0 0 12px 0;
+        font-size: 13px;
+        line-height: 1.35;
+        color: var(--muted);
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      button {
+        border: 0;
+        cursor: pointer;
+        color: var(--text);
+        background: rgba(124, 92, 255, 0.20);
+        border: 1px solid rgba(124, 92, 255, 0.35);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 650;
+        letter-spacing: 0.2px;
+      }
+      button.secondary {
+        background: rgba(255, 255, 255, 0.10);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: rgba(233, 236, 255, 0.92);
+        font-weight: 600;
+      }
+      button:active { transform: translateY(1px); }
+
+      .hint {
+        font-size: 12px;
+        color: rgba(233, 236, 255, 0.75);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 20px;
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+      }
+
+      .controls h3 {
+        margin: 0;
+        font-size: 13px;
+        color: rgba(233, 236, 255, 0.92);
+        letter-spacing: 0.2px;
+      }
+
+      .controls ul {
+        margin: 0;
+        padding-left: 18px;
+        color: rgba(233, 236, 255, 0.75);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .touchpad {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
+        gap: 10px;
+        width: min(380px, 100%);
+        margin-top: 6px;
+        user-select: none;
+      }
+
+      .touchpad button {
+        height: 56px;
+        border-radius: 16px;
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.10);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+      }
+      .touchpad button.primary {
+        background: rgba(124, 92, 255, 0.22);
+        border: 1px solid rgba(124, 92, 255, 0.35);
+      }
+
+      @media (min-width: 920px) {
+        main { grid-template-columns: 1fr 320px; }
+        canvas { aspect-ratio: auto; }
+        .stage { min-height: 640px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div class="brand">
+          <h1>Snack Snake</h1>
+          <div class="tag">Anime-ish 3D vibe • tiny web game</div>
+        </div>
+        <div class="hud">
+          <div class="pill"><span>Score</span> <b id="score">0</b></div>
+          <div class="pill"><span>Best</span> <b id="best">0</b></div>
+          <div class="pill"><span>Speed</span> <b id="speed">1.0×</b></div>
+        </div>
+      </header>
+
+      <main>
+        <div class="stage" role="application" aria-label="Snack Snake game">
+          <canvas id="game" width="720" height="720"></canvas>
+          <div class="overlay" id="overlay" aria-hidden="false">
+            <div class="card">
+              <h2 id="title">Snack Snake</h2>
+              <p id="subtitle">
+                Eat snacks, grow longer, and don’t hit the walls or yourself. Press <b>Space</b> to pause.
+              </p>
+              <div class="row">
+                <button id="btnStart">Start</button>
+                <button id="btnRestart" class="secondary">Restart</button>
+                <button id="btnResume" class="secondary">Resume</button>
+              </div>
+              <p class="hint" style="margin-top: 10px">
+                Controls: Arrow keys / WASD • Mobile: swipe or use the buttons
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <section class="controls" aria-label="Controls panel">
+          <h3>Mobile Controls</h3>
+          <div class="touchpad" aria-label="Directional buttons">
+            <div></div>
+            <button class="primary" data-dir="up">Up</button>
+            <div></div>
+            <button data-dir="left">Left</button>
+            <button class="secondary" id="btnPause">Pause</button>
+            <button data-dir="right">Right</button>
+            <div></div>
+            <button class="primary" data-dir="down">Down</button>
+            <div></div>
+          </div>
+          <ul>
+            <li>Swipe anywhere on the game area to change direction.</li>
+            <li>Speed increases as you eat snacks.</li>
+            <li>Tip: you can’t reverse direction instantly.</li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      (() => {
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d", { alpha: false });
+
+        const scoreEl = document.getElementById("score");
+        const bestEl = document.getElementById("best");
+        const speedEl = document.getElementById("speed");
+
+        const overlay = document.getElementById("overlay");
+        const titleEl = document.getElementById("title");
+        const subtitleEl = document.getElementById("subtitle");
+        const btnStart = document.getElementById("btnStart");
+        const btnRestart = document.getElementById("btnRestart");
+        const btnResume = document.getElementById("btnResume");
+        const btnPause = document.getElementById("btnPause");
+
+        const GRID = 24;
+        const CELL = Math.floor(canvas.width / GRID);
+        const BOARD = CELL * GRID;
+
+        canvas.width = BOARD;
+        canvas.height = BOARD;
+
+        const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+        const DIRS = {
+          up: { x: 0, y: -1 },
+          down: { x: 0, y: 1 },
+          left: { x: -1, y: 0 },
+          right: { x: 1, y: 0 },
+        };
+
+        const isOpposite = (a, b) => a && b && a.x + b.x === 0 && a.y + b.y === 0;
+
+        const loadBest = () => {
+          try {
+            const raw = localStorage.getItem("snackSnakeBest");
+            const num = Number(raw);
+            return Number.isFinite(num) ? num : 0;
+          } catch {
+            return 0;
+          }
+        };
+
+        const saveBest = (best) => {
+          try {
+            localStorage.setItem("snackSnakeBest", String(best));
+          } catch {}
+        };
+
+        let best = loadBest();
+        bestEl.textContent = String(best);
+
+        let state = null;
+        let rafId = null;
+        let lastTickMs = 0;
+        let accumulatorMs = 0;
+
+        function newGameState() {
+          const center = Math.floor(GRID / 2);
+          const start = [
+            { x: center - 2, y: center },
+            { x: center - 1, y: center },
+            { x: center, y: center },
+          ];
+          const dir = { ...DIRS.right };
+          const nextDir = { ...DIRS.right };
+          return {
+            snake: start,
+            dir,
+            nextDir,
+            snack: randomEmptyCell(start),
+            score: 0,
+            paused: true,
+            gameOver: false,
+            tickMs: 140,
+          };
+        }
+
+        function randomEmptyCell(occupied) {
+          const occupiedKey = new Set(occupied.map((p) => `${p.x},${p.y}`));
+          const empties = [];
+          for (let y = 0; y < GRID; y++) {
+            for (let x = 0; x < GRID; x++) {
+              const key = `${x},${y}`;
+              if (!occupiedKey.has(key)) empties.push({ x, y });
+            }
+          }
+          return empties[Math.floor(Math.random() * empties.length)] ?? { x: 0, y: 0 };
+        }
+
+        function showOverlay(kind) {
+          overlay.setAttribute("aria-hidden", "false");
+          btnStart.style.display = kind === "start" ? "inline-block" : "none";
+          btnRestart.style.display = kind === "gameover" ? "inline-block" : "inline-block";
+          btnResume.style.display = kind === "pause" ? "inline-block" : "none";
+
+          if (kind === "start") {
+            titleEl.textContent = "Snack Snake";
+            subtitleEl.innerHTML =
+              "Eat snacks, grow longer, and don’t hit the walls or yourself. Press <b>Space</b> to pause.";
+          } else if (kind === "pause") {
+            titleEl.textContent = "Paused";
+            subtitleEl.textContent = "Resume when you’re ready. Tip: swipe or use buttons on mobile.";
+          } else if (kind === "gameover") {
+            titleEl.textContent = "Game Over";
+            subtitleEl.textContent = "Tap restart to try again. Your best score is saved on this device.";
+          }
+        }
+
+        function hideOverlay() {
+          overlay.setAttribute("aria-hidden", "true");
+        }
+
+        function setPaused(paused) {
+          if (!state) return;
+          state.paused = paused;
+          if (paused) showOverlay(state.gameOver ? "gameover" : "pause");
+          else hideOverlay();
+        }
+
+        function restart() {
+          state = newGameState();
+          updateHud();
+          showOverlay("start");
+          render();
+        }
+
+        function startOrResume() {
+          if (!state) restart();
+          if (state.gameOver) restart();
+          setPaused(false);
+        }
+
+        function gameOver() {
+          state.gameOver = true;
+          setPaused(true);
+        }
+
+        function speedMultiplier() {
+          const base = 140;
+          return clamp(base / state.tickMs, 1, 3);
+        }
+
+        function updateHud() {
+          scoreEl.textContent = String(state.score);
+          bestEl.textContent = String(best);
+          speedEl.textContent = `${speedMultiplier().toFixed(1)}×`;
+        }
+
+        function queueDir(dir) {
+          if (!state || state.gameOver) return;
+          if (isOpposite(state.dir, dir)) return;
+          state.nextDir = { ...dir };
+        }
+
+        function step() {
+          state.dir = state.nextDir;
+
+          const head = state.snake[state.snake.length - 1];
+          const next = { x: head.x + state.dir.x, y: head.y + state.dir.y };
+
+          if (next.x < 0 || next.y < 0 || next.x >= GRID || next.y >= GRID) {
+            gameOver();
+            return;
+          }
+
+          const nextKey = `${next.x},${next.y}`;
+          const bodyKeys = new Set(state.snake.map((p) => `${p.x},${p.y}`));
+          const tail = state.snake[0];
+          const tailKey = `${tail.x},${tail.y}`;
+          const willGrow = next.x === state.snack.x && next.y === state.snack.y;
+
+          if (bodyKeys.has(nextKey) && !(nextKey === tailKey && !willGrow)) {
+            gameOver();
+            return;
+          }
+
+          state.snake.push(next);
+
+          if (willGrow) {
+            state.score += 10;
+            if (state.score > best) {
+              best = state.score;
+              saveBest(best);
+            }
+            state.snack = randomEmptyCell(state.snake);
+
+            // Speed up gently as score grows (cap at 70ms).
+            state.tickMs = clamp(140 - Math.floor(state.score / 30) * 6, 70, 140);
+          } else {
+            state.snake.shift();
+          }
+
+          updateHud();
+        }
+
+        function drawBackground() {
+          // Subtle "anime sunset" gradient.
+          const g = ctx.createLinearGradient(0, 0, 0, BOARD);
+          g.addColorStop(0, "#0b0f20");
+          g.addColorStop(0.45, "#141a36");
+          g.addColorStop(1, "#090b14");
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, BOARD, BOARD);
+
+          // Grid shimmer.
+          ctx.save();
+          ctx.globalAlpha = 0.06;
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1;
+          for (let i = 0; i <= GRID; i++) {
+            const p = i * CELL + 0.5;
+            ctx.beginPath();
+            ctx.moveTo(p, 0);
+            ctx.lineTo(p, BOARD);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, p);
+            ctx.lineTo(BOARD, p);
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          // Vignette.
+          const v = ctx.createRadialGradient(BOARD * 0.5, BOARD * 0.45, BOARD * 0.2, BOARD * 0.5, BOARD * 0.55, BOARD * 0.8);
+          v.addColorStop(0, "rgba(0,0,0,0)");
+          v.addColorStop(1, "rgba(0,0,0,0.45)");
+          ctx.fillStyle = v;
+          ctx.fillRect(0, 0, BOARD, BOARD);
+        }
+
+        function roundedRect(x, y, w, h, r) {
+          const rr = Math.min(r, w / 2, h / 2);
+          ctx.beginPath();
+          ctx.moveTo(x + rr, y);
+          ctx.arcTo(x + w, y, x + w, y + h, rr);
+          ctx.arcTo(x + w, y + h, x, y + h, rr);
+          ctx.arcTo(x, y + h, x, y, rr);
+          ctx.arcTo(x, y, x + w, y, rr);
+          ctx.closePath();
+        }
+
+        function drawSnack(cell) {
+          const x = cell.x * CELL;
+          const y = cell.y * CELL;
+
+          // "Snack" is a shiny candy.
+          const pad = Math.floor(CELL * 0.18);
+          const w = CELL - pad * 2;
+          const h = CELL - pad * 2;
+
+          ctx.save();
+          const gx = x + pad;
+          const gy = y + pad;
+
+          const grad = ctx.createLinearGradient(gx, gy, gx + w, gy + h);
+          grad.addColorStop(0, "#ff4d6d");
+          grad.addColorStop(0.55, "#ff8fab");
+          grad.addColorStop(1, "#7c5cff");
+          ctx.fillStyle = grad;
+          roundedRect(gx, gy, w, h, 10);
+          ctx.fill();
+
+          ctx.globalAlpha = 0.35;
+          ctx.fillStyle = "#ffffff";
+          roundedRect(gx + w * 0.10, gy + h * 0.10, w * 0.45, h * 0.35, 9);
+          ctx.fill();
+
+          ctx.globalAlpha = 0.6;
+          ctx.strokeStyle = "rgba(255,255,255,0.6)";
+          ctx.lineWidth = 1.5;
+          roundedRect(gx + 1, gy + 1, w - 2, h - 2, 10);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        function drawSnake(snake) {
+          for (let i = 0; i < snake.length; i++) {
+            const p = snake[i];
+            const x = p.x * CELL;
+            const y = p.y * CELL;
+            const t = i / Math.max(1, snake.length - 1);
+            const pad = Math.floor(CELL * 0.10);
+            const w = CELL - pad * 2;
+            const h = CELL - pad * 2;
+
+            // Gradient along the body for a "3D" look.
+            const body = ctx.createLinearGradient(x + pad, y + pad, x + pad + w, y + pad + h);
+            body.addColorStop(0, `rgba(124, 92, 255, ${0.85 - t * 0.25})`);
+            body.addColorStop(1, `rgba(51, 214, 159, ${0.75 - t * 0.18})`);
+            ctx.fillStyle = body;
+            roundedRect(x + pad, y + pad, w, h, 12);
+            ctx.fill();
+
+            ctx.globalAlpha = 0.25;
+            ctx.fillStyle = "#ffffff";
+            roundedRect(x + pad + w * 0.10, y + pad + h * 0.10, w * 0.55, h * 0.30, 10);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Head details.
+            if (i === snake.length - 1) {
+              const eyeY = y + pad + h * 0.38;
+              const eyeOffset = w * 0.18;
+              const eyeSize = Math.max(2, Math.floor(CELL * 0.08));
+
+              ctx.fillStyle = "rgba(7,10,20,0.9)";
+              ctx.beginPath();
+              ctx.arc(x + pad + w * 0.55 - eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+              ctx.arc(x + pad + w * 0.55 + eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.fillStyle = "rgba(255,255,255,0.9)";
+              ctx.beginPath();
+              ctx.arc(x + pad + w * 0.55 - eyeOffset + 1, eyeY - 1, Math.max(1, eyeSize - 1), 0, Math.PI * 2);
+              ctx.arc(x + pad + w * 0.55 + eyeOffset + 1, eyeY - 1, Math.max(1, eyeSize - 1), 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+
+        function render() {
+          drawBackground();
+
+          if (!state) return;
+          drawSnack(state.snack);
+          drawSnake(state.snake);
+
+          if (state.paused && !state.gameOver) {
+            ctx.save();
+            ctx.globalAlpha = 0.75;
+            ctx.fillStyle = "rgba(7,10,20,0.35)";
+            ctx.fillRect(0, 0, BOARD, BOARD);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = "rgba(233,236,255,0.85)";
+            ctx.font = "600 18px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("Paused", BOARD / 2, BOARD / 2);
+            ctx.restore();
+          }
+        }
+
+        function loop(nowMs) {
+          rafId = requestAnimationFrame(loop);
+
+          if (!state) return;
+          if (!lastTickMs) lastTickMs = nowMs;
+
+          const delta = nowMs - lastTickMs;
+          lastTickMs = nowMs;
+
+          if (state.paused || state.gameOver) {
+            accumulatorMs = 0;
+            render();
+            return;
+          }
+
+          accumulatorMs += delta;
+          while (accumulatorMs >= state.tickMs) {
+            accumulatorMs -= state.tickMs;
+            step();
+            if (state.gameOver) break;
+          }
+          render();
+        }
+
+        function togglePause() {
+          if (!state) restart();
+          if (state.gameOver) return;
+          setPaused(!state.paused);
+        }
+
+        // Keyboard controls
+        window.addEventListener("keydown", (e) => {
+          const k = e.key.toLowerCase();
+          if (k === " " || k === "spacebar") {
+            e.preventDefault();
+            togglePause();
+            return;
+          }
+          if (k === "enter") {
+            if (!state) restart();
+            if (state.paused) startOrResume();
+            return;
+          }
+          if (k === "r") {
+            restart();
+            return;
+          }
+          if (k === "arrowup" || k === "w") queueDir(DIRS.up);
+          else if (k === "arrowdown" || k === "s") queueDir(DIRS.down);
+          else if (k === "arrowleft" || k === "a") queueDir(DIRS.left);
+          else if (k === "arrowright" || k === "d") queueDir(DIRS.right);
+        });
+
+        // Buttons
+        btnStart.addEventListener("click", () => startOrResume());
+        btnResume.addEventListener("click", () => startOrResume());
+        btnRestart.addEventListener("click", () => {
+          restart();
+          startOrResume();
+        });
+        btnPause.addEventListener("click", () => togglePause());
+
+        document.querySelectorAll("[data-dir]").forEach((btn) => {
+          btn.addEventListener("click", () => queueDir(DIRS[btn.dataset.dir]));
+        });
+
+        // Swipe controls on the stage
+        let touchStart = null;
+        const stage = canvas.parentElement;
+        stage.addEventListener(
+          "touchstart",
+          (e) => {
+            const t = e.touches[0];
+            touchStart = { x: t.clientX, y: t.clientY, time: performance.now() };
+          },
+          { passive: true },
+        );
+        stage.addEventListener(
+          "touchmove",
+          (e) => {
+            if (!touchStart) return;
+            const t = e.touches[0];
+            const dx = t.clientX - touchStart.x;
+            const dy = t.clientY - touchStart.y;
+            const adx = Math.abs(dx);
+            const ady = Math.abs(dy);
+            const threshold = 18;
+            if (Math.max(adx, ady) < threshold) return;
+
+            if (adx > ady) queueDir(dx > 0 ? DIRS.right : DIRS.left);
+            else queueDir(dy > 0 ? DIRS.down : DIRS.up);
+
+            // Prevent multi-swipes from one gesture.
+            touchStart = null;
+          },
+          { passive: true },
+        );
+        stage.addEventListener(
+          "touchend",
+          () => {
+            touchStart = null;
+          },
+          { passive: true },
+        );
+
+        // Click overlay to start quickly (desktop).
+        overlay.addEventListener("click", (e) => {
+          if (e.target.closest("button")) return;
+          if (!state) restart();
+          if (state.paused && !state.gameOver) startOrResume();
+        });
+
+        // Start
+        restart();
+        rafId = requestAnimationFrame(loop);
+      })();
+    </script>
+  </body>
+</html>
